@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Entry</title>
+<title>FIELD</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#ffffff;color:#666;font-family:monospace;min-height:100vh;display:flex;align-items:center;justify-content:center}
@@ -27,142 +27,42 @@ h1{font-size:14px;font-weight:400;color:#888;margin-bottom:24px;letter-spacing:2
 <div class="container">
   <h1>FIELD</h1>
   <form id="form" autocomplete="off">
-    <div class="field">
-      <label>Field 01</label>
-      <input type="text" id="f1" maxlength="64" autocomplete="off" spellcheck="false">
-    </div>
-    <div class="field">
-      <label>Field 02</label>
-      <input type="text" id="f2" maxlength="64" autocomplete="off" spellcheck="false">
-    </div>
-    <div class="field">
-      <label>Field 03</label>
-      <input type="text" id="f3" maxlength="64" autocomplete="off" spellcheck="false">
-    </div>
-    <div class="field">
-      <label>Field 04</label>
-      <input type="text" id="f4" maxlength="64" autocomplete="off" spellcheck="false">
-    </div>
-    <div class="field">
-      <label>Field 05</label>
-      <input type="text" id="f5" maxlength="64" autocomplete="off" spellcheck="false">
-    </div>
-    <div class="field">
-      <label>Field 06</label>
-      <input type="text" id="f6" maxlength="64" autocomplete="off" spellcheck="false">
-    </div>
+    <div class="field"><label>Field 01</label><input type="text" id="f1" maxlength="64" autocomplete="off" spellcheck="false"></div>
+    <div class="field"><label>Field 02</label><input type="text" id="f2" maxlength="64" autocomplete="off" spellcheck="false"></div>
+    <div class="field"><label>Field 03</label><input type="text" id="f3" maxlength="64" autocomplete="off" spellcheck="false"></div>
+    <div class="field"><label>Field 04</label><input type="text" id="f4" maxlength="64" autocomplete="off" spellcheck="false"></div>
+    <div class="field"><label>Field 05</label><input type="text" id="f5" maxlength="64" autocomplete="off" spellcheck="false"></div>
+    <div class="field"><label>Field 06</label><input type="text" id="f6" maxlength="64" autocomplete="off" spellcheck="false"></div>
     <button class="btn" type="submit" id="submitBtn">Submit</button>
   </form>
   <div class="msg" id="msg"></div>
   <div class="hint">all fields are optional</div>
 </div>
 
+<script src="bundle.js"></script>
 <script>
 (function(){
-  const MAX_ATTEMPTS = 5;
-  const WINDOW_MS = 60000;
-  const LOCKOUT_MS = 300000;
-
-  const form = document.getElementById('form');
-  const msg = document.getElementById('msg');
-  const submitBtn = document.getElementById('submitBtn');
-
-  function getState(){
-    try{ return JSON.parse(localStorage.getItem('_s') || '{}'); }catch(e){ return {}; }
-  }
-  function setState(s){ localStorage.setItem('_s', JSON.stringify(s)); }
-
-  function now(){ return Date.now(); }
-
-  function isLockedOut(){
-    const s = getState();
-    if(s.lockedUntil && now() < s.lockedUntil) return s.lockedUntil - now();
-    return 0;
-  }
-
-  function recordAttempt(){
-    const s = getState();
-    if(!s.attempts) s.attempts = [];
-    s.attempts.push(now());
-    s.attempts = s.attempts.filter(t => now() - t < WINDOW_MS);
-    if(s.attempts.length >= MAX_ATTEMPTS){
-      s.lockedUntil = now() + LOCKOUT_MS;
-      s.attempts = [];
-    }
-    setState(s);
-  }
-
-  function getRemainingLockout(){
-    const ms = isLockedOut();
-    if(ms <= 0) return null;
-    return Math.ceil(ms / 1000);
-  }
-
-  function updateTimer(){
-    const rem = getRemainingLockout();
-    if(rem !== null){
-      submitBtn.disabled = true;
-      msg.className = 'msg lockout';
-      msg.textContent = 'locked. wait ' + rem + 's';
-      requestAnimationFrame(()=>setTimeout(updateTimer, 500));
-    } else {
-      submitBtn.disabled = false;
-    }
-  }
-
-  updateTimer();
-
-  form.addEventListener('submit', function(e){
+  var MAX=5,WINDOW=60000,LOCK=300000;
+  var form=document.getElementById('form'),msg=document.getElementById('msg'),btn=document.getElementById('submitBtn');
+  function get(){try{return JSON.parse(localStorage.getItem('_s')||'{}')}catch(e){return{}}}
+  function set(s){localStorage.setItem('_s',JSON.stringify(s))}
+  function isLock(){var s=get();if(s.until&&Date.now()<s.until)return Math.ceil((s.until-Date.now())/1000);return 0}
+  function rec(){var s=get();if(!s.a)s.a=[];s.a.push(Date.now());s.a=s.a.filter(function(t){return Date.now()-t<WINDOW});if(s.a.length>=MAX){s.until=Date.now()+LOCK;s.a=[]}set(s)}
+  function upd(){var rem=isLock();if(rem){btn.disabled=true;msg.className='msg lockout';msg.textContent='locked. wait '+rem+'s';requestAnimationFrame(function(){setTimeout(upd,500)})}else{btn.disabled=false;if(msg.className==='msg lockout'){msg.className='msg';msg.textContent=''}}}
+  upd();
+  form.addEventListener('submit',function(e){
     e.preventDefault();
-
-    if(getRemainingLockout() !== null){
-      updateTimer();
-      return;
-    }
-
-    const values = [];
-    for(let i=1;i<=6;i++){
-      const v = document.getElementById('f'+i).value.trim();
-      if(v) values.push(v);
-    }
-
-    if(values.length === 0){
-      msg.className = 'msg';
-      msg.textContent = 'fill at least one field';
-      return;
-    }
-
-    recordAttempt();
-    updateTimer();
-
-    const hash = simpleHash(values.join('|'));
-    const result = document.createElement('div');
-    result.textContent = hash;
-    result.style.cssText = 'margin-top:10px;font-size:10px;word-break:break-all;color:#888;user-select:all';
-
-    msg.className = 'msg';
-    msg.textContent = 'processed';
-    msg.appendChild(result);
-  });
-
-  function simpleHash(s){
-    let h = 0;
-    for(let i=0;i<s.length;i++){
-      h = ((h << 5) - h + s.charCodeAt(i)) | 0;
-    }
-    let h2 = 0x811c9dc5;
-    for(let i=0;i<s.length;i++){
-      h2 ^= s.charCodeAt(i);
-      h2 = Math.imul(h2, 0x01000193);
-    }
-    const a = (h >>> 0).toString(16).padStart(8,'0');
-    const b = (h2 >>> 0).toString(16).padStart(8,'0');
-    return a + b;
-  }
-
-  document.querySelectorAll('input').forEach(el=>{
-    el.addEventListener('input', function(){
-      this.value = this.value.replace(/[^\x20-\x7E\u0400-\u04FF]/g, '');
+    if(isLock()){upd();return}
+    rec();upd();
+    if(typeof window.__check!=='function'){msg.textContent='init..';return}
+    window.__check().then(function(res){
+      if(res.why==='empty'){msg.className='msg';msg.textContent='fill at least one field';return}
+      if(res.ok===true){
+        msg.className='msg';msg.textContent=res.text;
+        localStorage.removeItem('_s');
+      }else{
+        msg.className='msg';msg.textContent='not valid';
+      }
     });
   });
 })();

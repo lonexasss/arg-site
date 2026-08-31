@@ -1,0 +1,8 @@
+# Files containing secrets — never commit these
+secrets.js
+secrets.local.js
+build.js
+*.key
+
+# Local tooling
+node_modules/
